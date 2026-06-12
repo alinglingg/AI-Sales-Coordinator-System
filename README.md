@@ -483,9 +483,9 @@ AI-Sales-Coordinator-System/
 ├── README.md
 │
 ├── workflows/
-│   ├── workflow-1-lead-intake-sales-coordination.json
-│   ├── workflow-2-follow-up-automation-engine.json
-│   └── workflow-3-escalation-lead-recovery-engine.json
+│   ├── lead-intake-sales-coordination.json
+│   ├── follow-up-automation-engine.json
+│   └── escalation-lead-recovery-engine.json
 │
 ├── screenshots/
 │   ├── workflow-lead-intake-sales-coordination.png

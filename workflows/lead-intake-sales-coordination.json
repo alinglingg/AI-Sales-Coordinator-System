@@ -1,0 +1,1608 @@
+{
+  "name": "AI-Sales-Coordinator - Premier Realty",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "premierrealty-crm",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1216,
+        48
+      ],
+      "id": "ce15a797-8879-47f7-b250-ae0c0758b7a1",
+      "name": "Lead Inquiry Form",
+      "webhookId": "e356b81f-821d-46ad-ae9d-b2738197bebe"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "105771c1-4612-4be1-aa0c-9a872a02fb18",
+              "leftValue": "={{$json.lead_temperature}}",
+              "rightValue": "Hot",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -400,
+        320
+      ],
+      "id": "cc7085a7-f3c5-4521-a239-cb04017b05f8",
+      "name": "Hot Lead?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bd3003a3-dcd4-44e4-b622-211de3dd15dd",
+              "leftValue": "={{ $json.property_type }}",
+              "rightValue": "Residential",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "beb45a22-6199-47fd-8ff8-6a5b7d623edf",
+              "leftValue": "={{ $json.property_type }}",
+              "rightValue": "Condo",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -224,
+        256
+      ],
+      "id": "c1def356-40ed-4ca1-8325-7b2816524053",
+      "name": "Residential or Condo?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6415745d-2258-4cc7-b690-60077dfa8dde",
+              "leftValue": "={{ $json.lead_temperature }}",
+              "rightValue": "Warm",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -208,
+        416
+      ],
+      "id": "a1abc7f1-b9dd-4986-926a-fbcb7c2959bb",
+      "name": "Route Warm or Cold?"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -368,
+        32
+      ],
+      "id": "8f452f7a-fb86-4e04-8e5c-e44f38effa1f",
+      "name": "Merge Lead + AI Qualification"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiText = $json.output[0].content[0].text;\nconst qualification = JSON.parse(aiText);\n\nreturn [\n  {\n    json: {\n      ...qualification\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        -96
+      ],
+      "id": "903b6ac3-a5c1-4f6e-b7ba-1a57424e518d",
+      "name": "Parse AI Qualification JSON"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are an AI Sales Coordinator for Premier Realty.\n\nAnalyze this real estate lead and qualify it for the sales team.\n\nReturn ONLY valid JSON. Do not include markdown. Do not include explanation.\n\nLead Details:\nLead ID: {{$json.lead_id}}\nName: {{$json.name}}\nEmail: {{$json.email}}\nPhone: {{$json.phone}}\nProperty Type: {{$json.property_type}}\nBudget: {{$json.budget}}\nTimeline: {{$json.timeline}}\nMessage: {{$json.message}}\n\nScoring rules:\n- Hot: 75-100 score. Urgent timeline, clear buying intent, strong budget, asks for viewing/call.\n- Warm: 40-74 score. Interested but not urgent, incomplete details, still comparing options.\n- Cold: 0-39 score. Vague inquiry, low urgency, unclear intent, no strong buying signal.\n\nReturn this exact JSON structure:\n\n{\n  \"lead_score\": 0,\n  \"lead_temperature\": \"Hot\",\n  \"priority\": \"High\",\n  \"qualification_reason\": \"Short reason why this lead was classified this way.\",\n  \"recommended_action\": \"Specific next action for the assigned agent.\",\n  \"suggested_agent_type\": \"Residential\"\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -880,
+        -96
+      ],
+      "id": "9f857c5f-9b52-468c-ba40-b6721fb26415",
+      "name": "AI Lead Qualification Engine",
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAIAPI_CREDENTIAL_ID",
+          "name": "YOUR_openAiApi_account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e3c99625-36a8-435d-88b7-e52fe56037ed",
+              "name": "lead_id",
+              "value": "={{\"LEAD-\" + $now.toFormat('yyyyMMdd-HHmmss')}}",
+              "type": "string"
+            },
+            {
+              "id": "72849363-e5dd-4c5c-9c19-434a921b301d",
+              "name": "date_created",
+              "value": "={{$now.toFormat('yyyy-MM-dd HH:mm:ss')}}",
+              "type": "string"
+            },
+            {
+              "id": "6d219a17-0248-4f5b-9b73-44783cd799bd",
+              "name": "name",
+              "value": "={{ $json.body.name }}",
+              "type": "string"
+            },
+            {
+              "id": "55285e4f-4b74-4faa-8181-23ce3aa12c54",
+              "name": "email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "9dfa78b1-dc5e-430e-9986-c57cb3d8e4b8",
+              "name": "phone",
+              "value": "={{ $json.body.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "e32d149d-f3a0-42b4-a11e-738b238e8b2d",
+              "name": "property_type",
+              "value": "={{ $json.body.property_type }}",
+              "type": "string"
+            },
+            {
+              "id": "507bf362-f3f9-43d9-a309-62f1a4b7a4a4",
+              "name": "budget",
+              "value": "={{Number($json.body.budget)}}",
+              "type": "string"
+            },
+            {
+              "id": "9db6aeef-5289-41ce-9661-915bf0fa63e0",
+              "name": "timeline",
+              "value": "={{ $json.body.timeline }}",
+              "type": "string"
+            },
+            {
+              "id": "17e05195-538f-4eb0-99c0-55ca1b058899",
+              "name": "message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "23149287-a730-4ab0-9ef9-ae8581326373",
+              "name": "lead_status",
+              "value": "=New",
+              "type": "string"
+            },
+            {
+              "id": "eb0c2f2a-7d21-4493-ac96-2fa4ecd0292f",
+              "name": "follow_up_status",
+              "value": "=Not Started",
+              "type": "string"
+            },
+            {
+              "id": "04e18a52-62ab-4271-8d2b-6295de17e78d",
+              "name": "appointment_status",
+              "value": "=Not Booked",
+              "type": "string"
+            },
+            {
+              "id": "3bcd4214-ac94-4683-bcee-5fd0f58a9028",
+              "name": "outcome",
+              "value": "=Pending",
+              "type": "string"
+            },
+            {
+              "id": "4bae42f0-3a3b-479e-a443-60596853f7a6",
+              "name": "escalation_status",
+              "value": "=Not Escalated",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1040,
+        48
+      ],
+      "id": "642817cb-0b40-4bb9-9bce-c6742d4cc939",
+      "name": "Normalize Lead Data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4d6e99a6-e750-4ce9-9eec-375902ae6233",
+              "name": "assigned_agent",
+              "value": "Anna Santos",
+              "type": "string"
+            },
+            {
+              "id": "a73daad7-941b-4100-8162-9439f39e63e5",
+              "name": "agent_email",
+              "value": "anna@premierrealty.example",
+              "type": "string"
+            },
+            {
+              "id": "ed57b6a3-03da-4725-9580-abf29157e444",
+              "name": "agent_phone",
+              "value": "+639171111111",
+              "type": "string"
+            },
+            {
+              "id": "73a57c38-bb32-4934-9929-467ffe7d550a",
+              "name": "lead_status",
+              "value": "Assigned",
+              "type": "string"
+            },
+            {
+              "id": "d7e6a07d-753a-4382-8792-df92698f0028",
+              "name": "assigned_date",
+              "value": "={{$now.toFormat('yyyy-MM-dd HH:mm:ss')}}",
+              "type": "string"
+            },
+            {
+              "id": "f6b44c5c-aae0-4951-a597-fab5afea0c32",
+              "name": "agent_specialty",
+              "value": "Residential",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        32,
+        80
+      ],
+      "id": "84b2b408-5a05-4ee7-a5b8-2a2cf6cbfdbd",
+      "name": "Assign Anna Santos"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4d6e99a6-e750-4ce9-9eec-375902ae6233",
+              "name": "assigned_agent",
+              "value": "Carl Cruz",
+              "type": "string"
+            },
+            {
+              "id": "a73daad7-941b-4100-8162-9439f39e63e5",
+              "name": "agent_email",
+              "value": "demo@premierrealty.example",
+              "type": "string"
+            },
+            {
+              "id": "ed57b6a3-03da-4725-9580-abf29157e444",
+              "name": "agent_phone",
+              "value": "+639171111111",
+              "type": "string"
+            },
+            {
+              "id": "73a57c38-bb32-4934-9929-467ffe7d550a",
+              "name": "lead_status",
+              "value": "Assigned",
+              "type": "string"
+            },
+            {
+              "id": "af603507-ca70-4b55-8fcd-5e523d9f452d",
+              "name": "assigned_date",
+              "value": "={{$now.toFormat('yyyy-MM-dd HH:mm:ss')}}",
+              "type": "string"
+            },
+            {
+              "id": "13ea75dd-dd48-4ee1-a506-2640e65ab184",
+              "name": "agent_specialty",
+              "value": "Nuture / Cold Leads",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        48,
+        656
+      ],
+      "id": "c4b4a753-991a-405c-9c12-400791202664",
+      "name": "Assign Carl Cruz"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4d6e99a6-e750-4ce9-9eec-375902ae6233",
+              "name": "assigned_agent",
+              "value": "Bob Reyes",
+              "type": "string"
+            },
+            {
+              "id": "a73daad7-941b-4100-8162-9439f39e63e5",
+              "name": "agent_email",
+              "value": "demo@premierrealty.example",
+              "type": "string"
+            },
+            {
+              "id": "ed57b6a3-03da-4725-9580-abf29157e444",
+              "name": "agent_phone",
+              "value": "+639171111111",
+              "type": "string"
+            },
+            {
+              "id": "73a57c38-bb32-4934-9929-467ffe7d550a",
+              "name": "lead_status",
+              "value": "Assigned",
+              "type": "string"
+            },
+            {
+              "id": "b56dbba6-ff5c-435f-b51c-03a00b6c4ddc",
+              "name": "assigned_date",
+              "value": "={{$now.toFormat('yyyy-MM-dd HH:mm:ss')}}",
+              "type": "string"
+            },
+            {
+              "id": "7095b2f3-c465-4d86-8c8e-43460ce60a68",
+              "name": "agent_specialty",
+              "value": "Residential/Commercial",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        48,
+        256
+      ],
+      "id": "6597fe5b-513e-455d-aa59-c3303cc68be0",
+      "name": "Assign Bob Reyes - Hot Commercial"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "53dac716-79ae-4b42-9b90-91e845e8c8dd",
+              "name": "assigned_agent",
+              "value": "Bob Reyes",
+              "type": "string"
+            },
+            {
+              "id": "a73daad7-941b-4100-8162-9439f39e63e5",
+              "name": "agent_email",
+              "value": "demo@premierrealty.example",
+              "type": "string"
+            },
+            {
+              "id": "ed57b6a3-03da-4725-9580-abf29157e444",
+              "name": "agent_phone",
+              "value": "+639171111111",
+              "type": "string"
+            },
+            {
+              "id": "73a57c38-bb32-4934-9929-467ffe7d550a",
+              "name": "lead_status",
+              "value": "Assigned",
+              "type": "string"
+            },
+            {
+              "id": "774419ac-3fe1-479c-871b-3ee811d7b18c",
+              "name": "assigned_date",
+              "value": "={{$now.toFormat('yyyy-MM-dd HH:mm:ss')}}",
+              "type": "string"
+            },
+            {
+              "id": "f4238513-58d5-4a2e-aa91-4d34b1436b98",
+              "name": "agent_specialty",
+              "value": "Residential / Commercial",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        48,
+        464
+      ],
+      "id": "57736375-8a1f-42ea-9530-cd4e6621e150",
+      "name": "Assign Bob Reyes - Warm Lead"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "AI_Sales_Coordinator_System_CRM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1565084982,
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=YOUR_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead ID": "={{ $json.lead_id }}",
+            "Date Created": "={{ $json.date_created }}",
+            "Name": "={{ $json.name }}",
+            "Email": "={{ $json.email }}",
+            "Phone": "={{ $json.phone }}",
+            "Property Type": "={{ $json.property_type }}",
+            "Budget": "={{ $json.budget }}",
+            "Timeline": "={{ $json.timeline }}",
+            "Message": "={{ $json.message }}",
+            "Lead Score": "={{ $json.lead_score }}",
+            "Temperature": "={{ $json.lead_temperature }}",
+            "Priority": "={{ $json.priority }}",
+            "Qualification Reason": "={{ $json.qualification_reason }}",
+            "Recommended Action": "={{ $json.recommended_action }}",
+            "Suggested Agent Type": "={{ $json.suggested_agent_type }}",
+            "Assigned Agent": "={{ $json.assigned_agent }}",
+            "Agent Email": "={{ $json.agent_email }}",
+            "Agent Phone": "={{ $json.agent_phone }}",
+            "Agent Specialty": "={{ $json.agent_specialty }}",
+            "Lead Status": "={{ $json.lead_status }}",
+            "Follow-Up Status": "={{ $json.follow_up_status }}",
+            "Appointment Status": "={{ $json.appointment_status }}",
+            "Outcome": "={{ $json.outcome }}",
+            "Escalation Status": "={{ $json.escalation_status }}",
+            "Assigned Date": "={{ $json.assigned_date }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date Created",
+              "displayName": "Date Created",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Property Type",
+              "displayName": "Property Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timeline",
+              "displayName": "Timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Score",
+              "displayName": "Lead Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Temperature",
+              "displayName": "Temperature",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Qualification Reason",
+              "displayName": "Qualification Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recommended Action",
+              "displayName": "Recommended Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Suggested Agent Type",
+              "displayName": "Suggested Agent Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Assigned Agent",
+              "displayName": "Assigned Agent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Agent Email",
+              "displayName": "Agent Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Agent Phone",
+              "displayName": "Agent Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Agent Specialty",
+              "displayName": "Agent Specialty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Status",
+              "displayName": "Lead Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Follow-Up Status",
+              "displayName": "Follow-Up Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Appointment Status",
+              "displayName": "Appointment Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Outcome",
+              "displayName": "Outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Assigned Date",
+              "displayName": "Assigned Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Contact Date",
+              "displayName": "Last Contact Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Next Follow-Up Date",
+              "displayName": "Next Follow-Up Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Escalation Status",
+              "displayName": "Escalation Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        304,
+        352
+      ],
+      "id": "b7091293-8d58-4fe0-a5b7-39acfce04a67",
+      "name": "CRM: Create Lead Record",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLESHEETSOAUTH2API_CREDENTIAL_ID",
+          "name": "YOUR_googleSheetsOAuth2Api_account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=🚨 New {{ $json.Temperature }} Lead Assigned\n\nLead ID: {{ $json[\"Lead ID\"] }}\nName: {{ $json.Name }}\nPhone: {{ $json.Phone }}\nEmail: {{ $json.Email }}\n\nProperty Type: {{ $json[\"Property Type\"] }}\nBudget: ₱{{ $json.Budget }}\nTimeline: {{ $json.Timeline }}\n\nAI Score: {{ $json[\"Lead Score\"] }}/100\nPriority: {{ $json.Priority }}\n\nAssigned Agent: {{ $json[\"Assigned Agent\"] }}\nSpecialty: {{ $json[\"Agent Specialty\"] }}\n\nAI Reason:\n{{ $json[\"Qualification Reason\"] }}\n\nRecommended Action:\n{{ $json[\"Recommended Action\"] }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        656,
+        720
+      ],
+      "id": "61431698-7a90-49cc-9a1d-71dbf34fb1a5",
+      "name": "Notify Assigned Agent",
+      "webhookId": "cb19bdc2-783f-48d0-ba46-72d51f5cfa49",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAMAPI_CREDENTIAL_ID",
+          "name": "YOUR_telegramApi_account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "demo@premierrealty.example",
+        "subject": "=We received your property inquiry — Premier Realty",
+        "message": "=Hi {{ $('CRM: Create Lead Record').item.json.Name.split(' ')[0]}},<br><br>\n\nThank you for reaching out to <strong>Premier Realty</strong>.<br><br>\n\nWe received your inquiry about a <strong>{{ $('CRM: Create Lead Record').item.json[\"Property Type\"] }}</strong> property with a budget of <strong>₱{{ Number($('CRM: Create Lead Record').item.json[\"Budget\"]).toLocaleString('en-PH') }}</strong> and a timeline of <strong>{{ $('CRM: Create Lead Record').item.json.Timeline }}</strong>.<br><br>\n\nYour inquiry has been assigned to one of our sales specialists:<br><br>\n\n<strong>Assigned Agent:</strong> {{ $('CRM: Create Lead Record').item.json[\"Assigned Agent\"] }}<br><br>\n\nOur team will review your request and contact you as soon as possible to assist with the next steps.<br><br>\n\nBest regards,<br>\n<strong>Premier Realty Team</strong><br><br>\n\n",
+        "options": {
+          "senderName": "Premier Realty"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1152,
+        720
+      ],
+      "id": "a396a5e2-e9d3-4eb8-9a46-f07e83ec4209",
+      "name": "Send Lead Acknowledgement Email",
+      "webhookId": "dada7725-efe2-4795-bcaa-43c838da9c28",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAILOAUTH2_CREDENTIAL_ID",
+          "name": "YOUR_gmailOAuth2_account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "AI_Sales_Coordinator_System_CRM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1021398440,
+          "mode": "list",
+          "cachedResultName": "Activity Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=YOUR_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Lead ID": "={{ $('CRM: Create Lead Record').item.json[\"Lead ID\"] }}",
+            "Activity Type": "Acknowledgement Email Sent",
+            "Description": "=Acknowledgement email sent to {{ $('CRM: Create Lead Record').item.json[\"Email\"] }}",
+            "Agent": "={{ $('CRM: Create Lead Record').item.json[\"Assigned Agent\"] }}",
+            "Status": "Completed",
+            "Notes": "Automated confirmation email sent after lead was created in CRM."
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Activity Type",
+              "displayName": "Activity Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Agent",
+              "displayName": "Agent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1376,
+        720
+      ],
+      "id": "383fe9d4-8430-40ca-a9f1-84b264e100bd",
+      "name": "Activity Log: Acknowledgement Email Sent",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLESHEETSOAUTH2API_CREDENTIAL_ID",
+          "name": "YOUR_googleSheetsOAuth2Api_account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "AI_Sales_Coordinator_System_CRM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1021398440,
+          "mode": "list",
+          "cachedResultName": "Activity Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=YOUR_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Lead ID": "={{ $('CRM: Create Lead Record').item.json[\"Lead ID\"] }}",
+            "Activity Type": "=Agent Notified",
+            "Description": "=Telegram notification sent to {{ $('CRM: Create Lead Record').item.json[\"Assigned Agent\"] }}",
+            "Agent": "={{ $('CRM: Create Lead Record').item.json[\"Assigned Agent\"] }}",
+            "Status": "Completed",
+            "Notes": "Assigned agent received lead details, AI score, priority, and recommended action."
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Activity Type",
+              "displayName": "Activity Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Agent",
+              "displayName": "Agent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        912,
+        720
+      ],
+      "id": "19cd5424-e1ae-4149-8b39-1fff7d2d7bb0",
+      "name": "Activity Log: Agent Notified",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLESHEETSOAUTH2API_CREDENTIAL_ID",
+          "name": "YOUR_googleSheetsOAuth2Api_account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "AI_Sales_Coordinator_System_CRM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1021398440,
+          "mode": "list",
+          "cachedResultName": "Activity Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=YOUR_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Lead ID": "={{ $('CRM: Create Lead Record').item.json[\"Lead ID\"] }}",
+            "Activity Type": "Follow-Up Scheduled",
+            "Description": "=First follow-up task scheduled for {{ $now.plus({ days: 1 }).toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Agent": "={{ $('CRM: Create Lead Record').item.json[\"Assigned Agent\"] }}",
+            "Status": "Completed",
+            "Notes": "Follow-up task automatically created in the Follow-Ups sheet."
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Activity Type",
+              "displayName": "Activity Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Agent",
+              "displayName": "Agent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1840,
+        720
+      ],
+      "id": "ebc107db-86c4-4edb-92b2-9f79ab63ca04",
+      "name": "Activity Log: Follow-Up Scheduled",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLESHEETSOAUTH2API_CREDENTIAL_ID",
+          "name": "YOUR_googleSheetsOAuth2Api_account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "AI_Sales_Coordinator_System_CRM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1646193374,
+          "mode": "list",
+          "cachedResultName": "Follow-Ups",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=YOUR_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead ID": "={{ $('CRM: Create Lead Record').item.json[\"Lead ID\"] }}",
+            "Lead Name": "={{ $('CRM: Create Lead Record').item.json[\"Name\"] }}",
+            "Lead Email": "={{ $('CRM: Create Lead Record').item.json[\"Email\"] }}",
+            "Follow-Up Number": "1",
+            "Scheduled Date": "={{ $now.plus({ days: 1 }).toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Status": "Pending",
+            "Sent Date": "=",
+            "Assigned Agent": "={{ $('CRM: Create Lead Record').item.json[\"Assigned Agent\"] }}",
+            "Email Type": "Follow-Up 1",
+            "Priority": "={{ $('CRM: Create Lead Record').item.json[\"Priority\"] }}",
+            "Notes": "Auto-scheduled after lead assignment"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Name",
+              "displayName": "Lead Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead Email",
+              "displayName": "Lead Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Follow-Up Number",
+              "displayName": "Follow-Up Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Scheduled Date",
+              "displayName": "Scheduled Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sent Date",
+              "displayName": "Sent Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Assigned Agent",
+              "displayName": "Assigned Agent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Type",
+              "displayName": "Email Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1600,
+        720
+      ],
+      "id": "cf9460f5-c84b-44e8-b4ab-a866b9c2dbff",
+      "name": "Follow-Up: Create First Follow-Up Task",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLESHEETSOAUTH2API_CREDENTIAL_ID",
+          "name": "YOUR_googleSheetsOAuth2Api_account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Lead Inquiry Form": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hot Lead?": {
+      "main": [
+        [
+          {
+            "node": "Residential or Condo?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route Warm or Cold?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Residential or Condo?": {
+      "main": [
+        [
+          {
+            "node": "Assign Anna Santos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Assign Bob Reyes - Hot Commercial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Warm or Cold?": {
+      "main": [
+        [
+          {
+            "node": "Assign Bob Reyes - Warm Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Assign Carl Cruz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Lead + AI Qualification": {
+      "main": [
+        [
+          {
+            "node": "Hot Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Qualification JSON": {
+      "main": [
+        [
+          {
+            "node": "Merge Lead + AI Qualification",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "AI Lead Qualification Engine": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Qualification JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Lead + AI Qualification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Lead Qualification Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign Anna Santos": {
+      "main": [
+        [
+          {
+            "node": "CRM: Create Lead Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign Bob Reyes - Hot Commercial": {
+      "main": [
+        [
+          {
+            "node": "CRM: Create Lead Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign Bob Reyes - Warm Lead": {
+      "main": [
+        [
+          {
+            "node": "CRM: Create Lead Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign Carl Cruz": {
+      "main": [
+        [
+          {
+            "node": "CRM: Create Lead Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM: Create Lead Record": {
+      "main": [
+        [
+          {
+            "node": "Notify Assigned Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Assigned Agent": {
+      "main": [
+        [
+          {
+            "node": "Activity Log: Agent Notified",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Lead Acknowledgement Email": {
+      "main": [
+        [
+          {
+            "node": "Activity Log: Acknowledgement Email Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Activity Log: Agent Notified": {
+      "main": [
+        [
+          {
+            "node": "Send Lead Acknowledgement Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Activity Log: Acknowledgement Email Sent": {
+      "main": [
+        [
+          {
+            "node": "Follow-Up: Create First Follow-Up Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow-Up: Create First Follow-Up Task": {
+      "main": [
+        [
+          {
+            "node": "Activity Log: Follow-Up Scheduled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "351293a9-e04d-4ced-a67f-f872fa066a44",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "nodeGroups": [],
+  "id": "N6Xq96YC7J24JHQU",
+  "tags": []
+}

@@ -1,0 +1,512 @@
+{
+  "name": "AI Sales Coordinator — Follow-Up Automation Engine (Phase 3)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a868b25c-accb-4d79-aa2e-7077da0c7e52",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "AI_Sales_Coordinator_System_CRM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1646193374,
+          "mode": "list",
+          "cachedResultName": "Follow-Ups",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=YOUR_SHEET_GID"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        304,
+        0
+      ],
+      "id": "e633a1a4-27df-4380-a23c-d7811093111d",
+      "name": "Get Follow-Up Tasks",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLESHEETSOAUTH2API_CREDENTIAL_ID",
+          "name": "YOUR_googleSheetsOAuth2Api_account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a2ec4c26-45da-4324-ba36-eacbc9e49cc4",
+              "leftValue": "={{ $json[\"Status\"] }}",
+              "rightValue": "Pending",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "bd541f2a-a8b2-440d-b8ce-f2b3f46f9dcd",
+              "leftValue": "={{ $json[\"Lead Email\"] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        560,
+        0
+      ],
+      "id": "9e8feb6d-9b8a-479f-b36f-ae4db9b2a2d3",
+      "name": "Due follow-up?"
+    },
+    {
+      "parameters": {
+        "sendTo": "demo@premierrealty.example",
+        "subject": "Following up on your property inquiry — Premier Realty",
+        "message": "=Hi {{ $json[\"Lead Name\"].trim().split(' ')[0] }},<br><br>\n\nI wanted to follow up on your property inquiry with <strong>Premier Realty</strong>.<br><br>\n\nOur team has already reviewed your request, and we’d be happy to assist you with the next steps.<br><br>\n\nIf you’re still interested, you can reply to this email and our sales specialist will help you schedule a viewing or answer any questions about available properties.<br><br>\n\n<strong>Assigned Agent:</strong> {{ $json[\"Assigned Agent\"] }}<br><br>\n\nBest regards,<br>\n<strong>Premier Realty Team</strong><br><br>\n\n",
+        "options": {
+          "senderName": "Premier Realty"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        -144
+      ],
+      "id": "242d60d9-a449-40d8-886e-1df2d6d301f3",
+      "name": "Send Follow-Up Email",
+      "webhookId": "918bff3a-fbb2-40a2-a8af-7e95fd3cadc6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAILOAUTH2_CREDENTIAL_ID",
+          "name": "YOUR_gmailOAuth2_account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "AI_Sales_Coordinator_System_CRM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1646193374,
+          "mode": "list",
+          "cachedResultName": "Follow-Ups",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=YOUR_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": 0,
+            "Lead ID": "={{ $('Due follow-up?').item.json[\"Lead ID\"] }}",
+            "Lead Name": "={{ $('Due follow-up?').item.json[\"Lead Name\"] }}",
+            "Lead Email": "={{ $('Due follow-up?').item.json[\"Lead Email\"] }}",
+            "Follow-Up Number": "={{ $('Due follow-up?').item.json[\"Follow-Up Number\"] }}",
+            "Scheduled Date": "={{ $('Due follow-up?').item.json[\"Scheduled Date\"] }}",
+            "Status": "Sent",
+            "Sent Date": "={{ $now.toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Assigned Agent": "={{ $('Due follow-up?').item.json[\"Assigned Agent\"] }}",
+            "Email Type": "={{ $('Due follow-up?').item.json[\"Email Type\"] }}",
+            "Priority": "={{ $('Due follow-up?').item.json.Priority }}",
+            "Notes": "={{ $('Due follow-up?').item.json.Notes }}"
+          },
+          "matchingColumns": [
+            "Lead ID"
+          ],
+          "schema": [
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead Name",
+              "displayName": "Lead Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Email",
+              "displayName": "Lead Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Follow-Up Number",
+              "displayName": "Follow-Up Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Scheduled Date",
+              "displayName": "Scheduled Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sent Date",
+              "displayName": "Sent Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Assigned Agent",
+              "displayName": "Assigned Agent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Type",
+              "displayName": "Email Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1008,
+        -144
+      ],
+      "id": "8c37824e-d6e2-4a29-9302-56d051d2ad3a",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLESHEETSOAUTH2API_CREDENTIAL_ID",
+          "name": "YOUR_googleSheetsOAuth2Api_account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "AI_Sales_Coordinator_System_CRM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1021398440,
+          "mode": "list",
+          "cachedResultName": "Activity Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=YOUR_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Lead ID": "={{ $json[\"Lead ID\"] }}",
+            "Activity Type": "Follow-Up Sent",
+            "Description": "=Follow-up email sent to {{ $json[\"Lead Email\"] }}",
+            "Agent": "={{ $json[\"Assigned Agent\"] }}",
+            "Status": "Completed",
+            "Notes": "Follow-up status updated to Sent in the Follow-Ups sheet."
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Activity Type",
+              "displayName": "Activity Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Agent",
+              "displayName": "Agent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1216,
+        -144
+      ],
+      "id": "4eddb22c-99d7-4ad1-893d-c8b23fd0a8da",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLESHEETSOAUTH2API_CREDENTIAL_ID",
+          "name": "YOUR_googleSheetsOAuth2Api_account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "⚠️ Phase 3 production-ready version = add due-date condition\n\nBest production schedule:\nDaily at 9:00 AM\n\nCondition 1:\n{{ $json[\"Status\"] }} equals Pending\n\nCondition 2:\n{{ $json[\"Lead Email\"] }} is not empty\n\nCondition 3:\n{{ DateTime.fromFormat($json[\"Scheduled Date\"], 'yyyy-MM-dd HH:mm:ss') <= $now }} is true",
+        "height": 192,
+        "width": 352
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -32,
+        928
+      ],
+      "typeVersion": 1,
+      "id": "93f1dd7d-9d06-49b9-914d-b18b1f3a1c2f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Production improvement: Add due-date filtering, daily schedule trigger, and unique Follow-Up IDs to prevent duplicate or incorrect updates.",
+        "height": 112,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -32,
+        800
+      ],
+      "typeVersion": 1,
+      "id": "8b341985-c341-4e25-9bb7-c458e66e4ff0",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Follow-Up Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Follow-Up Tasks": {
+      "main": [
+        [
+          {
+            "node": "Due follow-up?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Due follow-up?": {
+      "main": [
+        [
+          {
+            "node": "Send Follow-Up Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Follow-Up Email": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1abc4935-4333-42d5-8f61-dfacc7ad05c7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "nodeGroups": [],
+  "id": "P7rzCJSXpmcK74cG",
+  "tags": []
+}

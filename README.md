@@ -461,7 +461,11 @@ Automated Gmail messages sent to leads.
 
 CRM database, activity log, follow-up queue, and dashboard powered by Google Sheets.
 
-![Leads Sheet](screenshots/google-sheets-leads.png)
+![Leads Sheet - Lead Details](screenshots/google-sheets-leads-1.png)
+
+![Leads Sheet - AI Qualification](screenshots/google-sheets-leads-2.png)
+
+![Leads Sheet - Assignment Details](screenshots/google-sheets-leads-3.png)
 
 ![Activity Log](screenshots/google-sheets-activity-log.png)
 
